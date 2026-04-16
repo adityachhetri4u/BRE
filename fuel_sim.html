@@ -104,7 +104,7 @@
     </div>
     <div class="hidden md:flex items-center space-x-6">
         <nav class="flex items-center space-x-6">
-            <a class="font-['Space_Grotesk'] uppercase tracking-[0.1em] text-xs font-bold text-[#FFB77A] border-b-2 border-[#FFB77A] pb-1" href="#">STATUS_MONITOR</a>
+            <a class="font-['Space_Grotesk'] uppercase tracking-[0.1em] text-xs font-bold text-[#FFB77A] border-b-2 border-[#FFB77A] pb-1" href="/fuel-sim">STATUS_MONITOR</a>
             <a class="font-['Space_Grotesk'] uppercase tracking-[0.1em] text-xs font-bold text-[#C6C6C7] hover:bg-[#FFB77A] hover:text-[#0A0E1A] px-2 py-1" href="/dashboard">DASHBOARD</a>
         </nav>
         <div class="flex items-center space-x-4">
@@ -230,7 +230,7 @@
         <span class="material-symbols-outlined text-lg">water_drop</span>
         <span class="font-['Space_Grotesk'] uppercase text-[9px] font-medium">WATER</span>
     </a>
-    <a id="reportBtn" href="#" class="flex flex-col items-center justify-center text-[#909096] p-2 cursor-pointer hover:text-[#72DE5C]">
+    <a id="reportBtn" href="/report" class="flex flex-col items-center justify-center text-[#909096] p-2 cursor-pointer hover:text-[#72DE5C]">
         <span class="material-symbols-outlined text-lg">account_tree</span>
         <span class="font-['Space_Grotesk'] uppercase text-[9px] font-medium">REPORTS</span>
     </a>
@@ -248,6 +248,26 @@
         return 'http://localhost:5001';
     }
     const BASE_URL = resolveBaseUrl();
+
+    function buildCandidateBaseUrls() {
+        const configured = (localStorage.getItem('backend_url') || '').trim().replace(/\/+$/, '');
+        const origin = (window.location.origin || '').trim().replace(/\/+$/, '');
+        const candidates = [];
+        if (configured) candidates.push(configured);
+        if (origin && origin !== 'null' && !origin.startsWith('file:')) candidates.push(origin);
+        candidates.push(BASE_URL, 'http://localhost:5001', 'http://127.0.0.1:5001');
+        return [...new Set(candidates.filter(Boolean))];
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs || 8000);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialSeverity = parseInt(urlParams.get('severity')) || 55;
@@ -277,12 +297,33 @@
         overlay.style.opacity = '1';
 
         try {
-            const res = await fetch(`${BASE_URL}/api/fuel`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ severity, total_nodes: 200 })
-            });
-            const data = await res.json();
+            const payload = JSON.stringify({ severity, total_nodes: 200 });
+            const candidates = buildCandidateBaseUrls();
+            let data = null;
+            let lastError = null;
+
+            for (const baseUrl of candidates) {
+                try {
+                    const res = await fetchWithTimeout(`${baseUrl}/api/fuel`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload
+                    }, 8000);
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        throw new Error(`HTTP ${res.status} ${res.statusText}: ${errorText || 'No response body'}`);
+                    }
+                    data = await res.json();
+                    localStorage.setItem('backend_url', baseUrl);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (!data) {
+                throw new Error(`Unable to reach /api/fuel. Last error: ${lastError ? lastError.message : 'unknown error'}`);
+            }
             console.log('Fuel ML response:', data);
 
             setTimeout(() => {

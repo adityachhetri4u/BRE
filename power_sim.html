@@ -122,10 +122,10 @@
         <h2 class="font-['Space_Grotesk'] uppercase text-xs tracking-widest text-[#72DE5C] font-black">SCENARIOS</h2>
         <p class="text-[10px] text-tertiary tracking-tighter">SECTOR-7 ACTIVE OPS</p>
     </div>
-    <div class="bg-[#1A1F2E] text-[#FFB77A] border-r-8 border-[#FFB77A] px-4 py-4 flex items-center gap-3 font-['Space_Grotesk'] uppercase text-xs tracking-widest cursor-default">
+    <a href="/power-sim" class="bg-[#1A1F2E] text-[#FFB77A] border-r-8 border-[#FFB77A] px-4 py-4 flex items-center gap-3 font-['Space_Grotesk'] uppercase text-xs tracking-widest cursor-pointer">
         <span class="material-symbols-outlined">bolt</span>
         <span>POWER GRID</span>
-    </div>
+    </a>
     <a href="/cyber-sim" class="text-[#C6C6C7] px-4 py-4 flex items-center gap-3 font-['Space_Grotesk'] uppercase text-xs tracking-widest hover:bg-[#1A1F2E] hover:text-[#72DE5C]">
         <span class="material-symbols-outlined">shield</span>
         <span>CYBER ATTACK</span>
@@ -242,7 +242,7 @@
         <span class="material-symbols-outlined text-sm">dashboard</span>
         <span>DASHBOARD</span>
     </a>
-    <a id="reportBtn" href="#" class="text-[#C6C6C7] h-full px-6 flex items-center justify-center font-['Space_Grotesk'] uppercase text-[10px] gap-2 hover:bg-[#72DE5C] hover:text-[#0A0E1A] cursor-pointer">
+    <a id="reportBtn" href="/report" class="text-[#C6C6C7] h-full px-6 flex items-center justify-center font-['Space_Grotesk'] uppercase text-[10px] gap-2 hover:bg-[#72DE5C] hover:text-[#0A0E1A] cursor-pointer">
         <span class="material-symbols-outlined text-sm">account_tree</span>
         <span>REPORTS</span>
     </a>
@@ -263,6 +263,26 @@
         return 'http://localhost:5001';
     }
     const BASE_URL = resolveBaseUrl();
+
+    function buildCandidateBaseUrls() {
+        const configured = (localStorage.getItem('backend_url') || '').trim().replace(/\/+$/, '');
+        const origin = (window.location.origin || '').trim().replace(/\/+$/, '');
+        const candidates = [];
+        if (configured) candidates.push(configured);
+        if (origin && origin !== 'null' && !origin.startsWith('file:')) candidates.push(origin);
+        candidates.push(BASE_URL, 'http://localhost:5001', 'http://127.0.0.1:5001');
+        return [...new Set(candidates.filter(Boolean))];
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs || 8000);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const initialSeverity = parseInt(urlParams.get('severity')) || 50;
@@ -299,12 +319,33 @@
         overlay.style.opacity = '1';
 
         try {
-            const res = await fetch(`${BASE_URL}/api/power`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ severity, total_nodes: 200 })
-            });
-            const data = await res.json();
+            const payload = JSON.stringify({ severity, total_nodes: 200 });
+            const candidates = buildCandidateBaseUrls();
+            let data = null;
+            let lastError = null;
+
+            for (const baseUrl of candidates) {
+                try {
+                    const res = await fetchWithTimeout(`${baseUrl}/api/power`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload
+                    }, 8000);
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        throw new Error(`HTTP ${res.status} ${res.statusText}: ${errorText || 'No response body'}`);
+                    }
+                    data = await res.json();
+                    localStorage.setItem('backend_url', baseUrl);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (!data) {
+                throw new Error(`Unable to reach /api/power. Last error: ${lastError ? lastError.message : 'unknown error'}`);
+            }
             console.log('Power ML response:', data);
 
             setTimeout(() => {

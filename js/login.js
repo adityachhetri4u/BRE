@@ -52,7 +52,7 @@
   if (demoBtn) {
     demoBtn.addEventListener('click', () => {
       localStorage.setItem('bharatReAuth', 'true');
-      navigateWithTransition('dashboard.html');
+      navigateWithTransition('/dashboard');
     });
   }
 
@@ -82,7 +82,7 @@
 
     // Navigate to dashboard
     setTimeout(() => {
-      window.location.href = 'dashboard.html';
+      window.location.href = '/dashboard';
     }, 2000);
   }
 

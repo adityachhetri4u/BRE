@@ -171,7 +171,7 @@
             <span class="material-symbols-outlined">water_drop</span>
             <span>WATER LOGISTICS</span>
         </a>
-        <a class="bg-[#FFB77A] text-[#0A0E1A] px-4 py-3 flex items-center gap-3 transition-none active:scale-95" href="#">
+        <a class="bg-[#FFB77A] text-[#0A0E1A] px-4 py-3 flex items-center gap-3 transition-none active:scale-95" href="/cyber-sim">
             <span class="material-symbols-outlined">shield</span>
             <span>CYBER ATTACK</span>
         </a>
@@ -298,7 +298,7 @@
             <span class="material-symbols-outlined text-sm">dashboard</span>
             <span>DASHBOARD</span>
         </a>
-        <a id="reportBtn" href="#" class="flex items-center gap-2 text-[#C6C6C7] hover:text-[#72DE5C] cursor-pointer">
+        <a id="reportBtn" href="/report" class="flex items-center gap-2 text-[#C6C6C7] hover:text-[#72DE5C] cursor-pointer">
             <span class="material-symbols-outlined text-sm">account_tree</span>
             <span>REPORTS</span>
         </a>
@@ -332,6 +332,26 @@
     const BASE_URL = resolveBaseUrl();
     let lastData = null;
 
+    function buildCandidateBaseUrls() {
+        const configured = (localStorage.getItem('backend_url') || '').trim().replace(/\/+$/, '');
+        const origin = (window.location.origin || '').trim().replace(/\/+$/, '');
+        const candidates = [];
+        if (configured) candidates.push(configured);
+        if (origin && origin !== 'null' && !origin.startsWith('file:')) candidates.push(origin);
+        candidates.push(BASE_URL, 'http://localhost:5001', 'http://127.0.0.1:5001');
+        return [...new Set(candidates.filter(Boolean))];
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs || 8000);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
     // Get severity from URL or default
     const urlParams = new URLSearchParams(window.location.search);
     const initialSeverity = parseInt(urlParams.get('severity')) || 60;
@@ -356,12 +376,33 @@
         overlay.style.opacity = '1';
 
         try {
-            const res = await fetch(`${BASE_URL}/api/cyber`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ severity, total_nodes: 200 })
-            });
-            const data = await res.json();
+            const payload = JSON.stringify({ severity, total_nodes: 200 });
+            const candidates = buildCandidateBaseUrls();
+            let data = null;
+            let lastError = null;
+
+            for (const baseUrl of candidates) {
+                try {
+                    const res = await fetchWithTimeout(`${baseUrl}/api/cyber`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload
+                    }, 8000);
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        throw new Error(`HTTP ${res.status} ${res.statusText}: ${errorText || 'No response body'}`);
+                    }
+                    data = await res.json();
+                    localStorage.setItem('backend_url', baseUrl);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (!data) {
+                throw new Error(`Unable to reach /api/cyber. Last error: ${lastError ? lastError.message : 'unknown error'}`);
+            }
             lastData = data;
             console.log('Cyber ML response:', data);
 

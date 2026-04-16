@@ -399,13 +399,13 @@
         
         setTimeout(() => {
           if (scenario === 'power') {
-            window.location.href = '/power_sim.html?severity=' + severity;
+            window.location.href = '/power-sim?severity=' + severity;
           } else if (scenario === 'water') {
-            window.location.href = '/water_sim.html?severity=' + severity;
+            window.location.href = '/water-sim?severity=' + severity;
           } else if (scenario === 'fuel') {
-            window.location.href = '/fuel_sim.html?severity=' + severity;
+            window.location.href = '/fuel-sim?severity=' + severity;
           } else if (scenario === 'cyber') {
-            window.location.href = '/cyber_sim.html?severity=' + severity;
+            window.location.href = '/cyber-sim?severity=' + severity;
           } else {
              simLoading.classList.add('hidden');
              if (window.onUserInput) window.onUserInput();

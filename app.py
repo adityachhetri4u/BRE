@@ -24,35 +24,56 @@ app.register_blueprint(cyber_bp)
 def home():
     return send_from_directory(".", "index.html")
 
+@app.route("/index.html", methods=["GET"])
+def home_html():
+    return send_from_directory(".", "index.html")
+
 @app.route("/dashboard", methods=["GET"])
+@app.route("/dashboard/", methods=["GET"])
+@app.route("/dashboard.html", methods=["GET"])
 def dashboard():
     return send_from_directory(".", "dashboard.html")
 
 @app.route("/login", methods=["GET"])
+@app.route("/login/", methods=["GET"])
+@app.route("/login.html", methods=["GET"])
 def login():
     return send_from_directory(".", "login.html")
 
 @app.route("/cyber-sim", methods=["GET"])
+@app.route("/cyber-sim/", methods=["GET"])
+@app.route("/cyber_sim.html", methods=["GET"])
 def cyber_sim():
     return send_from_directory(".", "cyber_sim.html")
 
 @app.route("/water-sim", methods=["GET"])
+@app.route("/water-sim/", methods=["GET"])
+@app.route("/water_sim.html", methods=["GET"])
 def water_sim():
     return send_from_directory(".", "water_sim.html")
 
 @app.route("/fuel-sim", methods=["GET"])
+@app.route("/fuel-sim/", methods=["GET"])
+@app.route("/fuel_sim.html", methods=["GET"])
 def fuel_sim():
     return send_from_directory(".", "fuel_sim.html")
 
 @app.route("/power-sim", methods=["GET"])
+@app.route("/power-sim/", methods=["GET"])
+@app.route("/power_sim.html", methods=["GET"])
 def power_sim():
     return send_from_directory(".", "power_sim.html")
 
 @app.route("/report", methods=["GET"])
+@app.route("/report/", methods=["GET"])
+@app.route("/report.html", methods=["GET"])
 def report():
     return send_from_directory(".", "report.html")
 
 @app.route("/system-pulse", methods=["GET"])
+@app.route("/system-pulse/", methods=["GET"])
+@app.route("/pulse", methods=["GET"])
+@app.route("/pulse.html", methods=["GET"])
 def system_pulse():
     return send_from_directory(".", "pulse.html")
 
