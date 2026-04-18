@@ -24,7 +24,7 @@
 
 ## 🚀 What is Bharat Resilience Engine?
 
-**Bharat Resilience Engine (BRE)** is an end-to-end AI-powered platform that predicts and manages **national infrastructure crises** across India. It combines **machine learning models** with a **linear programming optimizer** to intelligently allocate scarce resources during emergencies.
+**Bharat Resilience Engine (BRE)** is an end-to-end AI-powered platform that predicts and manages **national infrastructure crises** across India. It combines **machine learning models** with a **linear programming optimizer** to intelligently allocate scarce resources during emergencies..
 
 The system monitors **4 critical infrastructure domains** in real-time:
 
