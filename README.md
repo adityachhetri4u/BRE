@@ -83,7 +83,7 @@ The system monitors **4 critical infrastructure domains** in real-time:
 | 🔌 Power Shortage | RandomForest Classifier | ~90% | Spike Detection | 34 states × monthly |
 | ⛽ Fuel Shortage | XGBoost Regressor | MAE ≈ 0.00 | Supply Forecasting | 359 daily records |
 | 💧 Water Management | RandomForest Classifier | **99.18%** | ROC-AUC: **0.9996** | 1,830 district records |
-| 🛡️ Cybersecurity | Isolation Forest | 5% anomaly rate | Attack Detection | 40,000 packets |
+| 🛡️ Cybersecurity | Isolation Forest | 5% anomaly rate | Attack Detection | 40,000 packet |
 
 </div>
 
